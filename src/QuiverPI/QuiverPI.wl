@@ -12,6 +12,9 @@ QuiverPathToString::usage = "QuiverPathToString[path] renders a human readable d
 QuiverPhiMatrix::usage = "QuiverPhiMatrix[quiver, path] evaluates the map \\!\\(\\*OverscriptBox[\\(\\[Phi]\\), \\(^\\)]\\)_Q on the given path, producing a matrix unit.";
 QuiverIncidenceMask::usage = "QuiverIncidenceMask[quiver, paths] gives the zero-one mask of the associated incidence algebra.";
 QuiverIncidenceBasis::usage = "QuiverIncidenceBasis[quiver, paths] returns the list of matrix units spanning the incidence algebra.";
+QuiverIncidencePoset::usage = "QuiverIncidencePoset[quiver, opts] returns the transitive relation, Hasse diagram, and other poset data induced by the path generators.";
+QuiverPosetDecomposition::usage = "QuiverPosetDecomposition[quiver, opts] decomposes the incidence poset into strongly connected component blocks of type T_n or T_0.";
+QuiverPIIdealPrediction::usage = "QuiverPIIdealPrediction[quiver, opts] predicts \\!\\(\\*SubscriptBox[\\(\\text{id}\\), \\(T\\)]\\)(FQ_\\!\\(\\*SubscriptBox[\\(\\pi\\), \\(\\)]\\)) using the T-ideal decomposition described in the reference paper.";
 QuiverEnumeratePaths::usage = "QuiverEnumeratePaths[quiver, maxLength] lists all paths of length up to the specified bound.";
 QuiverRandomIncidenceElement::usage = "QuiverRandomIncidenceElement[quiver, opts] samples a random linear combination of basis matrices.";
 QuiverVerifyPolynomialIdentity::usage = "QuiverVerifyPolynomialIdentity[quiver, polyFun, vars, opts] Monte-Carlo checks that a matrix-valued noncommutative polynomial vanishes on the incidence algebra.";
@@ -33,9 +36,13 @@ ClearAll[
   QuiverPhiMatrix,
   QuiverIncidenceMask,
   QuiverIncidenceBasis,
+  QuiverIncidencePoset,
+  QuiverPosetDecomposition,
+  QuiverPIIdealPrediction,
   QuiverEnumeratePaths,
   QuiverRandomIncidenceElement,
   QuiverVerifyPolynomialIdentity,
+  QuiverResolveGenerators,
   QuiverMatrixZeroQ,
   QuiverOrientedCycles,
   QuiverVertexCycleCount,
@@ -61,6 +68,10 @@ CreateQuiver[vertices_List, arrows_List] := Module[
     "IndexMap" -> indexAssoc
   |>
 ];
+
+QuiverResolveGenerators[quiver_Association, Automatic] := QuiverDefaultPathGenerators[quiver];
+QuiverResolveGenerators[_, generators_List] := generators;
+QuiverResolveGenerators[_, generators_] := generators;
 
 QuiverZeroPath[quiver_Association, vertex_] := Module[
   {},
@@ -151,7 +162,7 @@ QuiverPathGraph[quiver_Association, generators_List] := Module[
 
 QuiverIncidenceMask[quiver_Association, generators_: Automatic] := Module[
   {paths, graph, adj, reach, power, n},
-  paths = If[generators === Automatic, QuiverDefaultPathGenerators[quiver], generators];
+  paths = QuiverResolveGenerators[quiver, generators];
   graph = QuiverPathGraph[quiver, paths];
   adj = Normal@AdjacencyMatrix[graph];
   n = Length[adj];
@@ -208,6 +219,217 @@ QuiverEnumeratePaths[quiver_Association, maxLength_Integer?NonNegative] := Modul
     {len, 2, maxLength}
   ];
   paths
+];
+
+Options[QuiverIncidencePoset] = {
+  "PathGenerators" -> Automatic
+};
+QuiverIncidencePoset[quiver_Association, OptionsPattern[]] := Module[
+  {paths = QuiverResolveGenerators[quiver, OptionValue["PathGenerators"]],
+   mask, vertices = quiver["Vertices"], n, relationEdges, coverEdges, relationGraph, coverGraph},
+  mask = QuiverIncidenceMask[quiver, paths];
+  n = Length[vertices];
+  relationEdges = DeleteDuplicates @ Flatten[
+      Table[
+        If[mask[[i, j]] == 1 && i =!= j,
+          DirectedEdge[vertices[[i]], vertices[[j]]],
+          Nothing
+        ],
+        {i, n}, {j, n}
+      ],
+      1
+    ];
+  coverEdges = Select[relationEdges, QuiverCoverEdgeQ[#, mask, vertices] &];
+  relationGraph = Graph[vertices, relationEdges, GraphLayout -> "LayeredDigraphEmbedding"];
+  coverGraph = Graph[vertices, coverEdges, GraphLayout -> "LayeredDigraphEmbedding"];
+  <|
+    "Vertices" -> vertices,
+    "Mask" -> mask,
+    "RelationEdges" -> relationEdges,
+    "RelationGraph" -> relationGraph,
+    "CoverEdges" -> coverEdges,
+    "HasseDiagram" -> coverGraph,
+    "PathGenerators" -> paths
+  |>
+];
+
+Options[QuiverPosetDecomposition] = {
+  "PathGenerators" -> Automatic
+};
+QuiverPosetDecomposition[quiver_Association, OptionsPattern[]] := Module[
+  {paths = QuiverResolveGenerators[quiver, OptionValue["PathGenerators"]],
+   vertices = quiver["Vertices"], vertexIndex, components, componentInfo,
+   vertexComponent, mask, componentEdges, condGraph, chainIDs, componentAssoc,
+   chainDescriptors},
+  mask = QuiverIncidenceMask[quiver, paths];
+  vertexIndex = AssociationThread[vertices, Range[Length[vertices]]];
+  components = QuiverStronglyConnectedComponents[mask, vertices];
+  componentInfo = MapIndexed[
+    With[{verts = Sort[#1], id = First[#2]},
+      <|
+        "ID" -> id,
+        "Vertices" -> verts,
+        "Size" -> Length[verts],
+        "Type" -> QuiverBlockTypeLabel[verts, mask, vertexIndex]
+      |>
+    ] &,
+    components
+  ];
+  vertexComponent = Association @ Flatten[
+      Table[
+        # -> componentInfo[[id, "ID"]] & /@ componentInfo[[id, "Vertices"]],
+        {id, Length[componentInfo]}
+      ]
+    ];
+  componentEdges = DeleteDuplicates @ Flatten[
+      Table[
+        With[{from = vertexComponent[vertices[[i]]], to = vertexComponent[vertices[[j]]]},
+          If[from =!= to && mask[[i, j]] == 1,
+            DirectedEdge[from, to],
+            Nothing
+          ]
+        ],
+        {i, Length[vertices]}, {j, Length[vertices]}
+      ],
+      1
+    ];
+  condGraph = Graph[
+    componentInfo[[All, "ID"]],
+    componentEdges,
+    VertexLabels -> Table[
+      componentInfo[[i, "ID"]] -> Row[{componentInfo[[i, "ID"]], " (" <> componentInfo[[i, "Type"]] <> ")"}],
+      {i, Length[componentInfo]}
+    ],
+    GraphLayout -> "LayeredDigraphEmbedding"
+  ];
+  chainIDs = QuiverComponentChainsFromEdges[componentInfo[[All, "ID"]], componentEdges];
+  componentAssoc = AssociationThread[componentInfo[[All, "ID"]], componentInfo];
+  chainDescriptors = Table[
+    With[{blocks = Lookup[componentAssoc, chainIDs[[k]]]},
+      With[{types = blocks[[All, "Type"]]},
+        With[{label = StringRiffle[types, " "]},
+          <|
+            "ComponentIDs" -> chainIDs[[k]],
+            "Blocks" -> blocks,
+            "BlockTypes" -> types,
+            "ChainLabel" -> label,
+            "IdealLabel" -> "I(" <> label <> ")",
+            "GeneratorsHint" -> QuiverChainGeneratorsHint[types]
+          |>
+        ]
+      ]
+    ],
+    {k, Length[chainIDs]}
+  ];
+  <|
+    "Components" -> componentInfo,
+    "ComponentGraph" -> condGraph,
+    "Chains" -> chainDescriptors,
+    "PathGenerators" -> paths
+  |>
+];
+
+Options[QuiverPIIdealPrediction] = {
+  "PathGenerators" -> Automatic
+};
+QuiverPIIdealPrediction[quiver_Association, OptionsPattern[]] := Module[
+  {paths = QuiverResolveGenerators[quiver, OptionValue["PathGenerators"]],
+   poset, decomposition, chainLabels, uniqueLabels, expression},
+  poset = QuiverIncidencePoset[quiver, "PathGenerators" -> paths];
+  decomposition = QuiverPosetDecomposition[quiver, "PathGenerators" -> paths];
+  chainLabels = decomposition["Chains"][[All, "ChainLabel"]];
+  uniqueLabels = DeleteDuplicates[chainLabels];
+  expression = If[uniqueLabels === {},
+    "Trivial",
+    StringRiffle["I(" <> # <> ")" & /@ uniqueLabels, " ∩ "]
+  ];
+  <|
+    "Poset" -> poset,
+    "Decomposition" -> decomposition,
+    "TIdealStructure" -> <|
+      "ChainLabels" -> uniqueLabels,
+      "Expression" -> expression,
+      "ChainDescriptors" -> decomposition["Chains"]
+    |>
+  |>
+];
+
+QuiverCoverEdgeQ[DirectedEdge[u_, v_], mask_, vertices_] := Module[
+  {i = First@FirstPosition[vertices, u], j = First@FirstPosition[vertices, v], n = Length[vertices]},
+  If[i === j || mask[[i, j]] == 0, Return[False]];
+  !AnyTrue[
+    Range[n],
+    Function[k,
+      k =!= i && k =!= j && mask[[i, k]] == 1 && mask[[k, j]] == 1
+    ]
+  ]
+];
+
+QuiverBlockTypeLabel[verts_List, mask_, vertexIndex_Association] := Module[
+  {size = Length[verts]},
+  Which[
+    size == 0, "T0",
+    size == 1,
+      With[{idx = Lookup[vertexIndex, First[verts], None]},
+        If[idx === None,
+          "T0",
+          If[mask[[idx, idx]] == 1, "T1", "T0"]
+        ]
+      ],
+    True,
+      "T" <> ToString[size]
+  ]
+];
+
+QuiverStronglyConnectedComponents[mask_, vertices_List] := Module[
+  {remaining = Range[Length[vertices]], components = {}, idx, forward, backward, compIdx},
+  While[remaining =!= {},
+    idx = First[remaining];
+    forward = Flatten@Position[mask[[idx]], 1];
+    backward = Flatten@Position[mask[[All, idx]], 1];
+    compIdx = Union[{idx}, Intersection[forward, backward]];
+    AppendTo[components, vertices[[compIdx]]];
+    remaining = Complement[remaining, compIdx];
+  ];
+  components
+];
+
+QuiverComponentChainsFromEdges[ids_List, edges_List] := Module[
+  {chains = {}, succMap, indegree, mins, dfs},
+  succMap = AssociationThread[ids, ConstantArray[{}, Length[ids]]];
+  indegree = AssociationThread[ids, ConstantArray[0, Length[ids]]];
+  Do[
+    Module[{edgeList = List @@ edge, from, to},
+      from = edgeList[[1]];
+      to = edgeList[[2]];
+      succMap[from] = Append[succMap[from], to];
+      indegree[to] = indegree[to] + 1;
+    ],
+    {edge, edges}
+  ];
+  mins = Select[ids, indegree[#] == 0 &];
+  If[mins === {}, mins = ids];
+  dfs[node_, current_] := Module[{succ = Lookup[succMap, node, {}]},
+    If[succ === {} || succ === Null,
+      AppendTo[chains, current],
+      Do[dfs[next, Append[current, next]], {next, succ}]
+    ]
+  ];
+  Do[dfs[min, {min}], {min, mins}];
+  DeleteDuplicates[chains]
+];
+
+QuiverChainGeneratorsHint[types_List] := Which[
+  types === {"T1", "T0"} || types === {"T0", "T1"},
+    {"[x1,x2] x3"},
+  types === {"T1", "T1"},
+    {"[x1,x2][x3,x4]"},
+  types === {"T0"},
+    {"x1"},
+  types === {"T1"},
+    {"[x1,x2]"},
+  True,
+    {}
 ];
 
 QuiverOrientedCycles[quiver_Association] := Module[

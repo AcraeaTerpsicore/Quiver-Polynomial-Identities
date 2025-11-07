@@ -52,3 +52,9 @@ Following \cite{CDP}, a finite quiver $Q$ is PI if and only if each vertex belon
 \[
 Q \text{ is PI } \Longleftrightarrow \forall v \in Q_0,\quad \#\{\text{oriented cycles containing } v\} \le 1.
 \]
+
+## T-Ideal Decomposition
+
+- We distinguish two basic building blocks following \cite{B}: $T_0$ is a singleton with no relation, whereas $T_n$ is the $n$-element set endowed with the full relation $T_n \times T_n$ (PI-equivalent to $M_n(F)$). A strongly connected component of size $n$ corresponds to $T_n$; a singleton without a loop corresponds to $T_0$.
+- The incidence poset factors through its strongly connected components. Every maximal chain of components yields an ordinal product such as $T_1 T_0$ or $T_1 T_1$, and the predicted $\mathrm{id}(FQ_\pi)$ is the intersection of the $I(\cdot)$ ideals coming from all maximal chains.
+- Example: for $\pi = \{e_1, \alpha\}$ in the $A_2$ quiver, the component chain is $T_1 T_0$, hence $I(T_1 T_0) = \langle [x_1,x_2]x_3\rangle_T$. For the three-vertex quiver of Example 2, the chains are $T_1 T_1$, so $\mathrm{id}(FQ_\pi) = I(T_1 T_1) = \langle [x_1,x_2][x_3,x_4]\rangle_T$.

@@ -129,7 +129,28 @@ test11 = VerificationTest[
   TestID -> "Oriented cycles enumeration"
 ];
 
-report = TestReport[{test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11}];
+predA2 = QuiverPIIdealPrediction[qA2, "PathGenerators" -> piA2];
+test12 = VerificationTest[
+  predA2["TIdealStructure", "ChainLabels"] === {"T1 T0"},
+  True,
+  TestID -> "PI ideal prediction (A2)"
+];
+
+predFull = QuiverPIIdealPrediction[qEx];
+test13 = VerificationTest[
+  predFull["TIdealStructure", "ChainLabels"] === {"T1 T1"},
+  True,
+  TestID -> "PI ideal prediction (full example)"
+];
+
+predRestricted = QuiverPIIdealPrediction[qEx, "PathGenerators" -> piRestricted];
+test14 = VerificationTest[
+  Sort[predRestricted["TIdealStructure", "ChainLabels"]] === Sort[{"T1 T1", "T0 T1"}],
+  True,
+  TestID -> "PI ideal prediction (restricted example)"
+];
+
+report = TestReport[{test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14}];
 Print[report];
 If[report["TestsFailed"] > 0,
   Exit[1],

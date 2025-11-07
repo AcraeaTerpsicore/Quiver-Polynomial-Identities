@@ -47,6 +47,14 @@ Implementation of the constructions outlined in the paper ["Polynomial identitie
    PIQuiverQ[q]
    ```
 
+6. Recover the T-ideal decomposition predicted by the incidence poset:
+
+   ```wolfram
+   poset = QuiverIncidencePoset[q, "PathGenerators" -> pi];
+   pred = QuiverPIIdealPrediction[q, "PathGenerators" -> pi];
+   pred["TIdealStructure", "Expression"]  (* e.g. I(T1 T0) *)
+   ```
+
 Key exported utilities are described inline within `src/QuiverPI/QuiverPI.wl`.
 
 ## Running Tests
@@ -67,7 +75,6 @@ See `TEST_SUMMARY.md` for a concise log of executed commands.
 
 ## Future Extensions
 
-- Poset/T-ideal decomposition: expose `QuiverIncidencePoset` plus utilities that factor the transitive order into $T_n$ blocks to predict $\mathrm{id}(FQ_\pi)$ as in \cite[Thm. 7]{B}. *Status: not started — requires computing chain decompositions and T-ideal products.*
 - Linear $\varphi_Q$ evaluator: extend $\varphi_Q$ from paths to arbitrary linear combinations to streamline comparisons inside $FQ_\pi$. *Status: not started — needs a lightweight symbolic representation for path algebra elements.*
 
 ## References
