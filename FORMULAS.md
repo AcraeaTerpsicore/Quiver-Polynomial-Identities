@@ -45,3 +45,10 @@ All formulas reference the notation from `reference_paper/BCDP_3.tex`. They capt
   \]
 
 These formulas feed the Wolfram Language helpers that build quiver incidence masks, enumerate paths, and run Monte Carlo PI checks.
+
+## PI Criterion
+
+Following \cite{CDP}, a finite quiver $Q$ is PI if and only if each vertex belongs to at most one oriented cycle. The helper `PIQuiverQ` implements this by enumerating all simple directed cycles (including loops) and counting their incidences:
+\[
+Q \text{ is PI } \Longleftrightarrow \forall v \in Q_0,\quad \#\{\text{oriented cycles containing } v\} \le 1.
+\]

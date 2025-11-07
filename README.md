@@ -1,6 +1,6 @@
 # Quiver Polynomial Identities
 
-Implementation of the constructions outlined in `reference_paper/BCDP_3.tex` (Berele–Cerulli Irelli–De Loera Chávez–Pascucci). The project exposes a Wolfram Language toolkit for building finite quivers, enumerating their path semigroups, constructing the associated incidence algebras, and empirically checking polynomial identities that follow from the paper.
+Implementation of the constructions outlined in the paper ["Polynomial identities for quivers via incidence algebras"](https://arxiv.org/abs/2511.03536). The project exposes a Wolfram Language toolkit for building finite quivers, enumerating their path semigroups, constructing the associated incidence algebras, and empirically checking polynomial identities that follow from the paper.
 
 ## Project Layout
 
@@ -39,6 +39,14 @@ Implementation of the constructions outlined in `reference_paper/BCDP_3.tex` (Be
    pathsUpTo2 = QuiverEnumeratePaths[q, 2];
    ```
 
+5. Check the Cerulli–De Loera–Pascucci PI criterion (no vertex lies on more than one oriented cycle):
+
+   ```wolfram
+   cycles = QuiverOrientedCycles[q];
+   counts = QuiverVertexCycleCount[q];
+   PIQuiverQ[q]
+   ```
+
 Key exported utilities are described inline within `src/QuiverPI/QuiverPI.wl`.
 
 ## Running Tests
@@ -56,6 +64,11 @@ The suite covers:
 - Structural helpers like $\varphi_Q$ images, incidence masks, and bounded path enumeration.
 
 See `TEST_SUMMARY.md` for a concise log of executed commands.
+
+## Future Extensions
+
+- Poset/T-ideal decomposition: expose `QuiverIncidencePoset` plus utilities that factor the transitive order into $T_n$ blocks to predict $\mathrm{id}(FQ_\pi)$ as in \cite[Thm. 7]{B}. *Status: not started — requires computing chain decompositions and T-ideal products.*
+- Linear $\varphi_Q$ evaluator: extend $\varphi_Q$ from paths to arbitrary linear combinations to streamline comparisons inside $FQ_\pi$. *Status: not started — needs a lightweight symbolic representation for path algebra elements.*
 
 ## References
 

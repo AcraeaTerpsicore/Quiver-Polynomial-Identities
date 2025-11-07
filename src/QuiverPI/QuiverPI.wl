@@ -16,6 +16,9 @@ QuiverEnumeratePaths::usage = "QuiverEnumeratePaths[quiver, maxLength] lists all
 QuiverRandomIncidenceElement::usage = "QuiverRandomIncidenceElement[quiver, opts] samples a random linear combination of basis matrices.";
 QuiverVerifyPolynomialIdentity::usage = "QuiverVerifyPolynomialIdentity[quiver, polyFun, vars, opts] Monte-Carlo checks that a matrix-valued noncommutative polynomial vanishes on the incidence algebra.";
 QuiverMatrixZeroQ::usage = "QuiverMatrixZeroQ[matrix, tol] tests whether all entries of the given matrix are numerically negligible.";
+QuiverOrientedCycles::usage = "QuiverOrientedCycles[quiver] returns the vertex lists of all simple oriented cycles in the quiver.";
+QuiverVertexCycleCount::usage = "QuiverVertexCycleCount[quiver] returns an association vertex -> number of oriented cycles passing through it.";
+PIQuiverQ::usage = "PIQuiverQ[quiver] evaluates the criterion from [CDP] that a quiver is PI iff no vertex belongs to more than one oriented cycle.";
 
 Begin["`Private`"];
 
@@ -33,7 +36,10 @@ ClearAll[
   QuiverEnumeratePaths,
   QuiverRandomIncidenceElement,
   QuiverVerifyPolynomialIdentity,
-  QuiverMatrixZeroQ
+  QuiverMatrixZeroQ,
+  QuiverOrientedCycles,
+  QuiverVertexCycleCount,
+  PIQuiverQ
 ];
 
 QuiverArrow[name_, source_, target_] := <|
@@ -202,6 +208,25 @@ QuiverEnumeratePaths[quiver_Association, maxLength_Integer?NonNegative] := Modul
     {len, 2, maxLength}
   ];
   paths
+];
+
+QuiverOrientedCycles[quiver_Association] := Module[
+  {graph = quiver["Graph"], rawCycles, vertexCycles, loopCycles},
+  rawCycles = FindCycle[graph, Infinity, All];
+  vertexCycles = First /@ # & /@ rawCycles;
+  loopCycles = ({#["Source"]} &) /@ Select[Values[quiver["Arrows"]], #["Source"] === #["Target"] &];
+  Join[vertexCycles, loopCycles]
+];
+
+QuiverVertexCycleCount[quiver_Association] := Module[
+  {cycles = QuiverOrientedCycles[quiver], vertices = quiver["Vertices"], counts},
+  counts = Counts[Flatten[cycles]];
+  AssociationThread[vertices, Lookup[counts, vertices, 0]]
+];
+
+PIQuiverQ[quiver_Association] := Module[
+  {counts = QuiverVertexCycleCount[quiver]},
+  AllTrue[Values[counts], # <= 1 &]
 ];
 
 Options[QuiverRandomIncidenceElement] = {

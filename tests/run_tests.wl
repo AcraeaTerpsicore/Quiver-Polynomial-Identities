@@ -99,7 +99,37 @@ test7 = VerificationTest[
   TestID -> "Enumerate paths (A2, length<=2)"
 ];
 
-report = TestReport[{test1, test2, test3, test4, test5, test6, test7}];
+test8 = VerificationTest[
+  PIQuiverQ[qEx],
+  True,
+  TestID -> "PIQuiverQ (Example quiver)"
+];
+
+qNonPI = CreateQuiver[{1, 2}, {
+   QuiverArrow["loop", 1, 1],
+   QuiverArrow["forward", 1, 2],
+   QuiverArrow["back", 2, 1]
+}];
+
+test9 = VerificationTest[
+  PIQuiverQ[qNonPI],
+  False,
+  TestID -> "PIQuiverQ detects multiple cycles"
+];
+
+test10 = VerificationTest[
+  QuiverVertexCycleCount[qNonPI] === <|1 -> 2, 2 -> 1|>,
+  True,
+  TestID -> "Vertex cycle counts (non-PI)"
+];
+
+test11 = VerificationTest[
+  Length[QuiverOrientedCycles[qNonPI]] === 2,
+  True,
+  TestID -> "Oriented cycles enumeration"
+];
+
+report = TestReport[{test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11}];
 Print[report];
 If[report["TestsFailed"] > 0,
   Exit[1],
