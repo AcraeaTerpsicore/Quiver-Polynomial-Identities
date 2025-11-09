@@ -75,7 +75,8 @@ See `TEST_SUMMARY.md` for a concise log of executed commands.
 
 ## Future Extensions
 
-- Linear $\varphi_Q$ evaluator: extend $\varphi_Q$ from paths to arbitrary linear combinations to streamline comparisons inside $FQ_\pi$. *Status: not started — needs a lightweight symbolic representation for path algebra elements.*
+- Linear $\varphi_Q$ evaluator: extend $\varphi_Q$ from paths to arbitrary linear combinations to streamline comparisons inside $FQ_\pi$. *Status: not started — still requires a lightweight symbolic representation for path algebra elements.*
+- Symbolic T-ideal generators: map each chain label (e.g., $T_1T_0$, $T_1T_1$) to an explicit generating set of noncommutative polynomials following \cite{B}, so predicted identities can be exported automatically. *Status: not started — would need a general library of multilinear commutator formulas.*
 
 ## References
 
