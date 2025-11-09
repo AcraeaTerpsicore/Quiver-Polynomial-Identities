@@ -53,6 +53,8 @@ Implementation of the constructions outlined in the paper ["Polynomial identitie
    poset = QuiverIncidencePoset[q, "PathGenerators" -> pi];
    pred = QuiverPIIdealPrediction[q, "PathGenerators" -> pi];
    pred["TIdealStructure", "Expression"]  (* e.g. I(T1 T0) *)
+   pred["Decomposition", "Chains"][[1, "Generators"]]  (* {"[x1, x2] x3"} *)
+   QuiverTIdealGenerators[{"T1", "T0"}]               (* direct helper *)
    ```
 
 Key exported utilities are described inline within `src/QuiverPI/QuiverPI.wl`.

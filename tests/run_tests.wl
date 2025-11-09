@@ -150,7 +150,24 @@ test14 = VerificationTest[
   TestID -> "PI ideal prediction (restricted example)"
 ];
 
-report = TestReport[{test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14}];
+test15 = VerificationTest[
+  QuiverTIdealGenerators[{"T1", "T0"}] === {"[x1, x2] x3"},
+  True,
+  TestID -> "T-ideal generators T1 T0"
+];
+
+chainGenAssoc = AssociationThread[
+  predRestricted["Decomposition", "Chains"][[All, "ChainLabel"]],
+  predRestricted["Decomposition", "Chains"][[All, "Generators"]]
+];
+
+test16 = VerificationTest[
+  chainGenAssoc["T0 T1"] === {"x1 [x2, x3]"} && chainGenAssoc["T1 T1"] === {"[x1, x2] [x3, x4]"},
+  True,
+  TestID -> "Chain generators export"
+];
+
+report = TestReport[{test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16}];
 Print[report];
 If[report["TestsFailed"] > 0,
   Exit[1],

@@ -15,6 +15,7 @@ QuiverIncidenceBasis::usage = "QuiverIncidenceBasis[quiver, paths] returns the l
 QuiverIncidencePoset::usage = "QuiverIncidencePoset[quiver, opts] returns the transitive relation, Hasse diagram, and other poset data induced by the path generators.";
 QuiverPosetDecomposition::usage = "QuiverPosetDecomposition[quiver, opts] decomposes the incidence poset into strongly connected component blocks of type T_n or T_0.";
 QuiverPIIdealPrediction::usage = "QuiverPIIdealPrediction[quiver, opts] predicts \\!\\(\\*SubscriptBox[\\(\\text{id}\\), \\(T\\)]\\)(FQ_\\!\\(\\*SubscriptBox[\\(\\pi\\), \\(\\)]\\)) using the T-ideal decomposition described in the reference paper.";
+QuiverTIdealGenerators::usage = "QuiverTIdealGenerators[blockTypes] returns symbolic generator strings for the T-ideal associated with the sequence of block types (e.g., {\"T1\",\"T0\"}).";
 QuiverEnumeratePaths::usage = "QuiverEnumeratePaths[quiver, maxLength] lists all paths of length up to the specified bound.";
 QuiverRandomIncidenceElement::usage = "QuiverRandomIncidenceElement[quiver, opts] samples a random linear combination of basis matrices.";
 QuiverVerifyPolynomialIdentity::usage = "QuiverVerifyPolynomialIdentity[quiver, polyFun, vars, opts] Monte-Carlo checks that a matrix-valued noncommutative polynomial vanishes on the incidence algebra.";
@@ -39,6 +40,7 @@ ClearAll[
   QuiverIncidencePoset,
   QuiverPosetDecomposition,
   QuiverPIIdealPrediction,
+  QuiverTIdealGenerators,
   QuiverEnumeratePaths,
   QuiverRandomIncidenceElement,
   QuiverVerifyPolynomialIdentity,
@@ -314,7 +316,7 @@ QuiverPosetDecomposition[quiver_Association, OptionsPattern[]] := Module[
             "BlockTypes" -> types,
             "ChainLabel" -> label,
             "IdealLabel" -> "I(" <> label <> ")",
-            "GeneratorsHint" -> QuiverChainGeneratorsHint[types]
+            "Generators" -> QuiverTIdealGenerators[types]
           |>
         ]
       ]
@@ -419,17 +421,30 @@ QuiverComponentChainsFromEdges[ids_List, edges_List] := Module[
   DeleteDuplicates[chains]
 ];
 
-QuiverChainGeneratorsHint[types_List] := Which[
-  types === {"T1", "T0"} || types === {"T0", "T1"},
-    {"[x1,x2] x3"},
-  types === {"T1", "T1"},
-    {"[x1,x2][x3,x4]"},
-  types === {"T0"},
-    {"x1"},
-  types === {"T1"},
-    {"[x1,x2]"},
-  True,
-    {}
+QuiverTIdealGenerators[types_List] := Module[
+  {counter = 1, blockGenerators, combine},
+  blockGenerators["T0"] := Module[{v1 = counter++}, {"x" <> ToString[v1]}];
+  blockGenerators["T1"] := Module[{v1 = counter++, v2 = counter++}, {"[x" <> ToString[v1] <> ", x" <> ToString[v2] <> "]"}];
+  blockGenerators["T" ~~ nStr_] := Module[{n = Quiet@Check[ToExpression[nStr], -1]},
+    Which[
+      n >= 2, {"S_" <> ToString[2 n]},
+      n == 1, blockGenerators["T1"],
+      True, {"I(T" <> nStr <> ")"}
+    ]
+  ];
+  blockGenerators[_] := {"I(Unknown)"};
+  combine = Fold[
+    Function[{acc, block},
+      Flatten@Table[
+        StringTrim @ StringReplace[accStr <> " " <> blockStr, StartOfString ~~ " " -> ""],
+        {accStr, acc},
+        {blockStr, blockGenerators[block]}
+      ]
+    ],
+    {""},
+    types
+  ];
+  DeleteCases[combine, ""]
 ];
 
 QuiverOrientedCycles[quiver_Association] := Module[
