@@ -28,6 +28,11 @@ All formulas reference the notation from `reference_paper/BCDP_3.tex`. They capt
   \[
     A_\pi = \varphi_Q(FQ_\pi) = \{ A \in M_n(F) \mid A_{ij} = 0 \text{ if no path in } \tilde{\pi} \text{ goes from } i \text{ to } j \}.
   \]
+- The map extends linearly to combinations $f = \sum_k \lambda_k p_k$ via
+  \[
+    \varphi_Q(f) = \sum_k \lambda_k\, e_{s(p_k), t(p_k)},
+  \]
+  implemented by `QuiverPhiLinear` which accepts terms like $\{ \lambda_k, p_k \}$ or vertex/arrow specifications.
 
 ## Polynomial Identities
 

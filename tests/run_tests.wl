@@ -167,7 +167,21 @@ test16 = VerificationTest[
   TestID -> "Chain generators export"
 ];
 
-report = TestReport[{test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16}];
+linCombo = QuiverPhiLinear[qA2, {{2, 1}, {3, "alpha"}}];
+test17 = VerificationTest[
+  linCombo === SparseArray[{{1, 1} -> 2, {1, 2} -> 3}, {2, 2}],
+  True,
+  TestID -> "Phi linear combination (sparse)"
+];
+
+linDense = QuiverPhiLinear[qA2, <|1 -> 5, "alpha" -> 7|>, "Sparse" -> False];
+test18 = VerificationTest[
+  linDense === {{5, 7}, {0, 0}},
+  True,
+  TestID -> "Phi linear combination (dense association)"
+];
+
+report = TestReport[{test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16, test17, test18}];
 Print[report];
 If[report["TestsFailed"] > 0,
   Exit[1],

@@ -33,13 +33,20 @@ Implementation of the constructions outlined in the paper ["Polynomial identitie
    ]
    ```
 
-4. Enumerate paths (e.g., for exporting into other systems):
+4. Evaluate linear combinations of paths without manually multiplying matrices:
+
+   ```wolfram
+   lin = QuiverPhiLinear[q, {{2, 1}, {3, "alpha"}}];
+   Normal[lin]  (* {{2, 3}, {0, 0}} *)
+   ```
+
+5. Enumerate paths (e.g., for exporting into other systems):
 
    ```wolfram
    pathsUpTo2 = QuiverEnumeratePaths[q, 2];
    ```
 
-5. Check the Cerulli–De Loera–Pascucci PI criterion (no vertex lies on more than one oriented cycle):
+6. Check the Cerulli–De Loera–Pascucci PI criterion (no vertex lies on more than one oriented cycle):
 
    ```wolfram
    cycles = QuiverOrientedCycles[q];
@@ -47,7 +54,7 @@ Implementation of the constructions outlined in the paper ["Polynomial identitie
    PIQuiverQ[q]
    ```
 
-6. Recover the T-ideal decomposition predicted by the incidence poset:
+7. Recover the T-ideal decomposition predicted by the incidence poset:
 
    ```wolfram
    poset = QuiverIncidencePoset[q, "PathGenerators" -> pi];
@@ -77,7 +84,7 @@ See `TEST_SUMMARY.md` for a concise log of executed commands.
 
 ## Future Extensions
 
-- Linear $\varphi_Q$ evaluator: extend $\varphi_Q$ from paths to arbitrary linear combinations to streamline comparisons inside $FQ_\pi$. *Status: not started — still requires a lightweight symbolic representation for path algebra elements.*
+- Symbolic incidence-algebra multiplication: expose structure constants for $A_\pi$ directly (as in \cite{B}) so that predicted $T$-ideal generators can be validated without resorting to random evaluation. *Status: not started — requires building a sparse multiplication engine on the basis $\{e_{i,j}\}$.*
 - Symbolic T-ideal generators: map each chain label (e.g., $T_1T_0$, $T_1T_1$) to an explicit generating set of noncommutative polynomials following \cite{B}, so predicted identities can be exported automatically. *Status: not started — would need a general library of multilinear commutator formulas.*
 
 ## References

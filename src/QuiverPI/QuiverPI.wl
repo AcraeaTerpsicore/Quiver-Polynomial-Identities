@@ -7,6 +7,7 @@ CreateQuiver::usage = "CreateQuiver[vertices, arrows] builds an internal quiver 
 QuiverZeroPath::usage = "QuiverZeroPath[quiver, vertex] returns the idempotent path e_vertex.";
 QuiverArrowPath::usage = "QuiverArrowPath[quiver, name] returns the single-arrow path associated with the given label.";
 QuiverCompositePath::usage = "QuiverCompositePath[quiver, arrowNames] composes a list of arrow names into a path, when possible.";
+QuiverPhiLinear::usage = "QuiverPhiLinear[quiver, terms, opts] extends \\!\\(\\*SubscriptBox[\\(\\varphi\\), \\(Q\\)]\\) to linear combinations of paths.";
 QuiverPathCompose::usage = "QuiverPathCompose[p, q] composes two compatible paths or returns a Failure if they do not meet.";
 QuiverPathToString::usage = "QuiverPathToString[path] renders a human readable description of a path.";
 QuiverPhiMatrix::usage = "QuiverPhiMatrix[quiver, path] evaluates the map \\!\\(\\*OverscriptBox[\\(\\[Phi]\\), \\(^\\)]\\)_Q on the given path, producing a matrix unit.";
@@ -32,8 +33,11 @@ ClearAll[
   QuiverZeroPath,
   QuiverArrowPath,
   QuiverCompositePath,
+  QuiverPhiLinear,
   QuiverPathCompose,
   QuiverPathToString,
+  QuiverNormalizePath,
+  QuiverNormalizeLinearTerms,
   QuiverPhiMatrix,
   QuiverIncidenceMask,
   QuiverIncidenceBasis,
@@ -120,6 +124,30 @@ QuiverCompositePath[quiver_Association, names_List] := Module[
   composed
 ];
 
+QuiverNormalizePath[quiver_Association, spec_] := Module[
+  {arrows = quiver["Arrows"], idx = quiver["IndexMap"]},
+  Which[
+    AssociationQ[spec] && And @@ (KeyExistsQ[spec, #] & /@ {"Start", "End", "Arrows", "Length"}),
+      spec,
+    MatchQ[spec, {"Zero", v_}],
+      QuiverZeroPath[quiver, spec[[2]]],
+    KeyExistsQ[idx, spec],
+      QuiverZeroPath[quiver, spec],
+    MatchQ[spec, {"Arrow", name_}],
+      QuiverArrowPath[quiver, spec[[2]]],
+    KeyExistsQ[arrows, spec],
+      QuiverArrowPath[quiver, spec],
+    MatchQ[spec, {"Composite", names_List}],
+      QuiverCompositePath[quiver, spec[[2]]],
+    ListQ[spec] && AllTrue[spec, KeyExistsQ[arrows, #] &],
+      QuiverCompositePath[quiver, spec],
+    True,
+      Message[QuiverNormalizePath::unknown, spec];
+      Failure["UnknownPath", <|"Specification" -> spec|>]
+  ]
+];
+QuiverNormalizePath::unknown = "Cannot interpret `1` as a path specification.";
+
 QuiverPathCompose[left_Association, right_Association] := Module[
   {},
   If[left["End"] =!= right["Start"],
@@ -148,6 +176,50 @@ QuiverPhiMatrix[quiver_Association, path_Association] := Module[
   j = idx[path["End"]];
   SparseArray[{{i, j} -> 1}, {n, n}]
 ];
+
+QuiverNormalizeLinearTerms[data_] := Module[
+  {termsList},
+  Which[
+    AssociationQ[data],
+      termsList = Normal[data],
+    ListQ[data],
+      termsList = data,
+    True,
+      termsList = {data}
+  ];
+  termsList = termsList /. Rule[s_, c_] :> {c, s};
+  If[!VectorQ[termsList, MatchQ[#, {_, _}] &],
+    Message[QuiverPhiLinear::term, termsList];
+    Return[$Failed];
+  ];
+  termsList
+];
+
+Options[QuiverPhiLinear] = {
+  "Sparse" -> True
+};
+QuiverPhiLinear[quiver_Association, terms_, OptionsPattern[]] := Module[
+  {normalized = QuiverNormalizeLinearTerms[terms], idx = quiver["IndexMap"], n = Length[quiver["Vertices"]],
+   matrix},
+  If[FailureQ[normalized], Return[$Failed]];
+  matrix = ConstantArray[0, {n, n}];
+  Do[
+    With[{coeff = term[[1]], spec = term[[2]], path = QuiverNormalizePath[quiver, term[[2]]]},
+      If[FailureQ[path],
+        Message[QuiverPhiLinear::badpath, spec];
+        Continue[];
+      ];
+      matrix[[idx[path["Start"]], idx[path["End"]]]] += coeff;
+    ],
+    {term, normalized}
+  ];
+  If[TrueQ[OptionValue["Sparse"]],
+    SparseArray[matrix],
+    matrix
+  ]
+];
+QuiverPhiLinear::term = "Unable to interpret `1` as {coefficient, pathSpecification} terms.";
+QuiverPhiLinear::badpath = "Skipping unrecognized path specification `1`.";
 
 QuiverDefaultPathGenerators[quiver_Association] := Module[
   {zeroes, arrows},
