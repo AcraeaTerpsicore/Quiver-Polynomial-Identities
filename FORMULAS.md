@@ -33,6 +33,15 @@ All formulas reference the notation from `reference_paper/BCDP_3.tex`. They capt
     \varphi_Q(f) = \sum_k \lambda_k\, e_{s(p_k), t(p_k)},
   \]
   implemented by `QuiverPhiLinear` which accepts terms like $\{ \lambda_k, p_k \}$ or vertex/arrow specifications.
+- Incidence basis elements multiply according to
+  \[
+    e_{i,j} \cdot e_{k,\ell} =
+    \begin{cases}
+      e_{i,\ell}, & j = k,\\
+      0, & \text{otherwise,}
+    \end{cases}
+  \]
+  and the helper `QuiverIncidenceMultiply` enforces this rule while checking whether $(i,\ell)$ belongs to the allowed mask.
 
 ## Polynomial Identities
 

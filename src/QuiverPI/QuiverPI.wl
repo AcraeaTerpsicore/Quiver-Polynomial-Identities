@@ -13,6 +13,8 @@ QuiverPathToString::usage = "QuiverPathToString[path] renders a human readable d
 QuiverPhiMatrix::usage = "QuiverPhiMatrix[quiver, path] evaluates the map \\!\\(\\*OverscriptBox[\\(\\[Phi]\\), \\(^\\)]\\)_Q on the given path, producing a matrix unit.";
 QuiverIncidenceMask::usage = "QuiverIncidenceMask[quiver, paths] gives the zero-one mask of the associated incidence algebra.";
 QuiverIncidenceBasis::usage = "QuiverIncidenceBasis[quiver, paths] returns the list of matrix units spanning the incidence algebra.";
+QuiverIncidenceStructureConstants::usage = "QuiverIncidenceStructureConstants[quiver, opts] enumerates products of basis elements \\!\\(\\*SubscriptBox[\\(e\\), \\(i,j\\)]\\) in the incidence algebra.";
+QuiverIncidenceMultiply::usage = "QuiverIncidenceMultiply[quiver, a, b, opts] multiplies two symbolic incidence-algebra elements written on the \\!\\(\\*SubscriptBox[\\(e\\), \\(i,j\\)]\\) basis.";
 QuiverIncidencePoset::usage = "QuiverIncidencePoset[quiver, opts] returns the transitive relation, Hasse diagram, and other poset data induced by the path generators.";
 QuiverPosetDecomposition::usage = "QuiverPosetDecomposition[quiver, opts] decomposes the incidence poset into strongly connected component blocks of type T_n or T_0.";
 QuiverPIIdealPrediction::usage = "QuiverPIIdealPrediction[quiver, opts] predicts \\!\\(\\*SubscriptBox[\\(\\text{id}\\), \\(T\\)]\\)(FQ_\\!\\(\\*SubscriptBox[\\(\\pi\\), \\(\\)]\\)) using the T-ideal decomposition described in the reference paper.";
@@ -41,10 +43,16 @@ ClearAll[
   QuiverPhiMatrix,
   QuiverIncidenceMask,
   QuiverIncidenceBasis,
+  QuiverIncidenceStructureConstants,
+  QuiverIncidenceMultiply,
   QuiverIncidencePoset,
   QuiverPosetDecomposition,
   QuiverPIIdealPrediction,
   QuiverTIdealGenerators,
+  QuiverIncidenceBasisPairs,
+  QuiverNormalizeIncidenceElement,
+  QuiverIncidenceAssociationToMatrix,
+  QuiverIncidenceMatrixToAssociation,
   QuiverEnumeratePaths,
   QuiverRandomIncidenceElement,
   QuiverVerifyPolynomialIdentity,
@@ -268,6 +276,9 @@ QuiverIncidenceBasis[quiver_Association, generators_: Automatic] := Module[
   units
 ];
 
+QuiverIncidenceBasisPairs[quiver_Association, generators_: Automatic] :=
+  (QuiverIncidenceBasis[quiver, generators][[All, "Pair"]]);
+
 QuiverEnumeratePaths[quiver_Association, maxLength_Integer?NonNegative] := Module[
   {paths = {}, vertices = quiver["Vertices"], arrowNames = Keys[quiver["Arrows"]], level = <||>, current},
   paths = QuiverZeroPath[quiver, #] & /@ vertices;
@@ -294,6 +305,153 @@ QuiverEnumeratePaths[quiver_Association, maxLength_Integer?NonNegative] := Modul
   ];
   paths
 ];
+
+Options[QuiverIncidenceStructureConstants] = {
+  "PathGenerators" -> Automatic
+};
+QuiverIncidenceStructureConstants[quiver_Association, OptionsPattern[]] := Module[
+  {generators = QuiverResolveGenerators[quiver, OptionValue["PathGenerators"]],
+   pairs, mask, idx = quiver["IndexMap"], assoc},
+  pairs = QuiverIncidenceBasisPairs[quiver, generators];
+  mask = QuiverIncidenceMask[quiver, generators];
+  assoc = Association @ Flatten[
+      Table[
+        With[{left = pairs[[i]], right = pairs[[j]]},
+          Module[{result =
+             If[left[[2]] === right[[1]] && mask[[idx[left[[1]]], idx[right[[2]]]]] == 1,
+               {left[[1]], right[[2]]},
+               None
+             ]},
+            { ({left, right} -> result) }
+          ]
+        ],
+        {i, Length[pairs]}, {j, Length[pairs]}
+      ],
+      1
+    ];
+  <|
+    "Pairs" -> pairs,
+    "Constants" -> assoc
+  |>
+];
+
+QuiverIncidenceAssociationToMatrix[quiver_Association, assoc_Association] := Module[
+  {idx = quiver["IndexMap"], n = Length[quiver["Vertices"]], mat},
+  mat = ConstantArray[0, {n, n}];
+  KeyValueMap[
+    (mat[[idx[#1[[1]]], idx[#1[[2]]]]] += #2) &,
+    assoc
+  ];
+  mat
+];
+
+QuiverIncidenceMatrixToAssociation[quiver_Association, mat_] := Module[
+  {idx = quiver["IndexMap"], verts = quiver["Vertices"], assoc = <||>},
+  Do[
+    If[! PossibleZeroQ[mat[[i, j]]],
+      assoc[{verts[[i]], verts[[j]]}] = mat[[i, j]]
+    ],
+    {i, Length[verts]}, {j, Length[verts]}
+  ];
+  assoc
+];
+
+QuiverNormalizeIncidenceElement[quiver_Association, elem_, generators_] := Module[
+  {pairs = QuiverIncidenceBasisPairs[quiver, generators], allowed, termSource, assoc = <||>, matrixAssoc,
+   normalizedTerms},
+  allowed = AssociationThread[pairs, ConstantArray[True, Length[pairs]]];
+  Which[
+    AssociationQ[elem], termSource = Normal[elem],
+    Head[elem] === SparseArray,
+      matrixAssoc = QuiverIncidenceMatrixToAssociation[quiver, Normal[elem]];
+      termSource = Normal[matrixAssoc],
+    MatrixQ[elem],
+      matrixAssoc = QuiverIncidenceMatrixToAssociation[quiver, elem];
+      termSource = Normal[matrixAssoc],
+    MatchQ[elem, _Rule], termSource = {elem},
+    ListQ[elem] && AllTrue[elem, MatchQ[#, _Rule] &], termSource = elem,
+    MatchQ[elem, {_, {_, _}}],
+      termSource = {elem},
+    ListQ[elem] && AllTrue[elem, MatchQ[#, {_, {_, _}}] &],
+      termSource = elem,
+    True,
+      Message[QuiverIncidenceMultiply::elem, elem];
+      Return[$Failed];
+  ];
+  If[termSource === <||> || termSource === {}, Return[assoc]];
+  If[AssociationQ[termSource], termSource = Normal[termSource]];
+  If[!ListQ[termSource], termSource = {termSource}];
+  normalizedTerms = DeleteCases[
+    Map[
+      Which[
+        MatchQ[#, {_, {_, _}}], #,
+        MatchQ[#, {{_, _}, _}], {#[[2]], #[[1]]},
+        MatchQ[#, _Rule] && MatchQ[First[#], {_, _}], {Last[#], First[#]},
+        True,
+          Message[QuiverIncidenceMultiply::pair, #];
+          Nothing
+      ] &,
+      termSource
+    ],
+    Nothing
+  ];
+  Do[
+    With[{coeff = term[[1]], pair = term[[2]]},
+      If[!MatchQ[pair, {_, _}],
+        Message[QuiverIncidenceMultiply::pair, pair];
+        Continue[];
+      ];
+      If[!TrueQ[Lookup[allowed, Key[pair], False]],
+        Message[QuiverIncidenceMultiply::pair, pair];
+        Continue[];
+      ];
+      assoc[pair] = Lookup[assoc, Key[pair], 0] + coeff;
+    ],
+    {term, normalizedTerms}
+  ];
+  assoc
+];
+
+Options[QuiverIncidenceMultiply] = {
+  "PathGenerators" -> Automatic,
+  "Output" -> "Association"
+};
+QuiverIncidenceMultiply[quiver_Association, elemA_, elemB_, OptionsPattern[]] := Module[
+  {generators = QuiverResolveGenerators[quiver, OptionValue["PathGenerators"]],
+   mask,
+   idx = quiver["IndexMap"],
+   assocA, assocB, result = <||>, output},
+  mask = QuiverIncidenceMask[quiver, generators];
+  assocA = QuiverNormalizeIncidenceElement[quiver, elemA, generators];
+  assocB = QuiverNormalizeIncidenceElement[quiver, elemB, generators];
+  If[FailureQ[assocA] || FailureQ[assocB], Return[$Failed]];
+  KeyValueMap[
+    (With[{leftPair = #1, leftCoeff = #2},
+       KeyValueMap[
+         (With[{rightPair = #1, rightCoeff = #2},
+             If[leftPair[[2]] === rightPair[[1]] && mask[[idx[leftPair[[1]]], idx[rightPair[[2]]]]] == 1,
+               Module[{pair = {leftPair[[1]], rightPair[[2]]}},
+                 result[pair] = Lookup[result, Key[pair], 0] + leftCoeff * rightCoeff
+               ]
+             ]
+           ]) &,
+         assocB
+       ]
+     ]) &,
+    assocA
+  ];
+  output = OptionValue["Output"];
+  Which[
+    output === "Matrix",
+      QuiverIncidenceAssociationToMatrix[quiver, result],
+    output === "SparseMatrix",
+      SparseArray[QuiverIncidenceAssociationToMatrix[quiver, result]],
+    True,
+      result
+  ]
+];
+QuiverIncidenceMultiply::elem = "Unable to interpret `1` as an incidence-algebra element.";
+QuiverIncidenceMultiply::pair = "Ignoring unsupported pair `1`.";
 
 Options[QuiverIncidencePoset] = {
   "PathGenerators" -> Automatic

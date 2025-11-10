@@ -64,6 +64,16 @@ Implementation of the constructions outlined in the paper ["Polynomial identitie
    QuiverTIdealGenerators[{"T1", "T0"}]               (* direct helper *)
    ```
 
+8. Work symbolically in the incidence algebra using basis elements $e_{i,j}$:
+
+   ```wolfram
+   struct = QuiverIncidenceStructureConstants[q, "PathGenerators" -> pi];
+   struct["Constants"][{{1, 1}, {1, 2}}]  (* returns {1, 2} *)
+
+   QuiverIncidenceMultiply[q, {{2, {1, 1}}}, {{5, {1, 2}}}]
+   (* <|{1, 2} -> 10|> *)
+   ```
+
 Key exported utilities are described inline within `src/QuiverPI/QuiverPI.wl`.
 
 ## Running Tests
@@ -84,8 +94,7 @@ See `TEST_SUMMARY.md` for a concise log of executed commands.
 
 ## Future Extensions
 
-- Symbolic incidence-algebra multiplication: expose structure constants for $A_\pi$ directly (as in \cite{B}) so that predicted $T$-ideal generators can be validated without resorting to random evaluation. *Status: not started — requires building a sparse multiplication engine on the basis $\{e_{i,j}\}$.*
-- Symbolic T-ideal generators: map each chain label (e.g., $T_1T_0$, $T_1T_1$) to an explicit generating set of noncommutative polynomials following \cite{B}, so predicted identities can be exported automatically. *Status: not started — would need a general library of multilinear commutator formulas.*
+- Explicit cycle–matrix equivalence: detect oriented cycles with $n$ vertices and build the concrete embedding $FQ \hookrightarrow M_n(F)$ highlighted in the abstract (to witness that the path algebra of the $n$-cycle is PI-equivalent to $M_n(F)$). *Status: not started — needs automated cycle classification plus canonical similarity data.*
 
 ## References
 
