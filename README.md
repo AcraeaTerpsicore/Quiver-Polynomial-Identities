@@ -60,8 +60,8 @@ Implementation of the constructions outlined in the paper ["Polynomial identitie
    poset = QuiverIncidencePoset[q, "PathGenerators" -> pi];
    pred = QuiverPIIdealPrediction[q, "PathGenerators" -> pi];
    pred["TIdealStructure", "Expression"]  (* e.g. I(T1 T0) *)
-   pred["Decomposition", "Chains"][[1, "Generators"]]  (* {"[x1, x2] x3"} *)
-   QuiverTIdealGenerators[{"T1", "T0"}]               (* direct helper *)
+   pred["Decomposition", "Chains"][[1, "Generators"]]  (* {(x1 ** x2 - x2 ** x1) ** x3} *)
+   QuiverTIdealGenerators[{"T1", "T0"}]
    ```
 
 8. Work symbolically in the incidence algebra using basis elements $e_{i,j}$:
@@ -72,6 +72,13 @@ Implementation of the constructions outlined in the paper ["Polynomial identitie
 
    QuiverIncidenceMultiply[q, {{2, {1, 1}}}, {{5, {1, 2}}}]
    (* <|{1, 2} -> 10|> *)
+   ```
+
+9. Generate explicit standard polynomials used in $T_n$-blocks:
+
+   ```wolfram
+   s4 = QuiverStandardPolynomial[2, {x1, x2, x3, x4}];
+   Short[s4, 3]  (* alternates all 4! signed noncommutative products *)
    ```
 
 Key exported utilities are described inline within `src/QuiverPI/QuiverPI.wl`.
@@ -95,6 +102,7 @@ See `TEST_SUMMARY.md` for a concise log of executed commands.
 ## Future Extensions
 
 - Explicit cycle–matrix equivalence: detect oriented cycles with $n$ vertices and build the concrete embedding $FQ \hookrightarrow M_n(F)$ highlighted in the abstract (to witness that the path algebra of the $n$-cycle is PI-equivalent to $M_n(F)$). *Status: not started — needs automated cycle classification plus canonical similarity data.*
+- Standard polynomial expansion: generate the full multilinear $S_{2n}$ expressions (and related identities from \cite{B}) so T-ideal generators for $T_n$ blocks are concrete Wolfram Language polynomials, not just symbolic placeholders. *Status: not started — requires an antisymmetrization utility over noncommuting variables.*
 
 ## References
 

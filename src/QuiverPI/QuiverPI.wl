@@ -18,7 +18,8 @@ QuiverIncidenceMultiply::usage = "QuiverIncidenceMultiply[quiver, a, b, opts] mu
 QuiverIncidencePoset::usage = "QuiverIncidencePoset[quiver, opts] returns the transitive relation, Hasse diagram, and other poset data induced by the path generators.";
 QuiverPosetDecomposition::usage = "QuiverPosetDecomposition[quiver, opts] decomposes the incidence poset into strongly connected component blocks of type T_n or T_0.";
 QuiverPIIdealPrediction::usage = "QuiverPIIdealPrediction[quiver, opts] predicts \\!\\(\\*SubscriptBox[\\(\\text{id}\\), \\(T\\)]\\)(FQ_\\!\\(\\*SubscriptBox[\\(\\pi\\), \\(\\)]\\)) using the T-ideal decomposition described in the reference paper.";
-QuiverTIdealGenerators::usage = "QuiverTIdealGenerators[blockTypes] returns symbolic generator strings for the T-ideal associated with the sequence of block types (e.g., {\"T1\",\"T0\"}).";
+QuiverTIdealGenerators::usage = "QuiverTIdealGenerators[blockTypes] returns symbolic generator expressions for the T-ideal associated with the sequence of block types (e.g., {\"T1\",\"T0\"}).";
+QuiverStandardPolynomial::usage = "QuiverStandardPolynomial[n, vars] produces the multilinear standard polynomial $S_{2n}$ in the provided noncommuting variables.";
 QuiverEnumeratePaths::usage = "QuiverEnumeratePaths[quiver, maxLength] lists all paths of length up to the specified bound.";
 QuiverRandomIncidenceElement::usage = "QuiverRandomIncidenceElement[quiver, opts] samples a random linear combination of basis matrices.";
 QuiverVerifyPolynomialIdentity::usage = "QuiverVerifyPolynomialIdentity[quiver, polyFun, vars, opts] Monte-Carlo checks that a matrix-valued noncommutative polynomial vanishes on the incidence algebra.";
@@ -40,6 +41,10 @@ ClearAll[
   QuiverPathToString,
   QuiverNormalizePath,
   QuiverNormalizeLinearTerms,
+  QuiverStandardPolynomial,
+  QuiverNCProduct,
+  QuiverSymbolicVariables,
+  QuiverCommutatorExpr,
   QuiverPhiMatrix,
   QuiverIncidenceMask,
   QuiverIncidenceBasis,
@@ -201,6 +206,30 @@ QuiverNormalizeLinearTerms[data_] := Module[
     Return[$Failed];
   ];
   termsList
+];
+
+QuiverNCProduct[list_List] := Which[
+  list === {}, 1,
+  Length[list] == 1, First[list],
+  True, NonCommutativeMultiply @@ list
+];
+
+QuiverSymbolicVariables[count_Integer?NonNegative, start_Integer: 1] :=
+  Table[Symbol["x" <> ToString[start + k - 1]], {k, count}];
+
+QuiverCommutatorExpr[a_, b_] := NonCommutativeMultiply[a, b] - NonCommutativeMultiply[b, a];
+
+QuiverStandardPolynomial::vars = "Expected `1` variables but got `2`.";
+QuiverStandardPolynomial[n_Integer?Positive, vars_: Automatic] := Module[
+  {m = 2 n, varList},
+  varList = Which[
+    vars === Automatic, QuiverSymbolicVariables[m],
+    ListQ[vars] && Length[vars] == m, vars,
+    True,
+      Message[QuiverStandardPolynomial::vars, m, If[ListQ[vars], Length[vars], vars]];
+      Return[$Failed];
+  ];
+  Total[(Signature[#] * QuiverNCProduct[varList[[#]]]) & /@ Permutations[Range[m]]]
 ];
 
 Options[QuiverPhiLinear] = {
@@ -652,12 +681,16 @@ QuiverComponentChainsFromEdges[ids_List, edges_List] := Module[
 ];
 
 QuiverTIdealGenerators[types_List] := Module[
-  {counter = 1, blockGenerators, combine},
-  blockGenerators["T0"] := Module[{v1 = counter++}, {"x" <> ToString[v1]}];
-  blockGenerators["T1"] := Module[{v1 = counter++, v2 = counter++}, {"[x" <> ToString[v1] <> ", x" <> ToString[v2] <> "]"}];
+  {counter = 1, nextSymbol, blockGenerators, combine},
+  nextSymbol[] := Symbol["x" <> ToString[counter++]];
+  blockGenerators["T0"] := Module[{v1 = nextSymbol[]}, {v1}];
+  blockGenerators["T1"] := Module[{v1 = nextSymbol[], v2 = nextSymbol[]}, {QuiverCommutatorExpr[v1, v2]}];
   blockGenerators["T" ~~ nStr_] := Module[{n = Quiet@Check[ToExpression[nStr], -1]},
     Which[
-      n >= 2, {"S_" <> ToString[2 n]},
+      n >= 2,
+        Module[{vars = Table[nextSymbol[], {2 n}]},
+          {QuiverStandardPolynomial[n, vars]}
+        ],
       n == 1, blockGenerators["T1"],
       True, {"I(T" <> nStr <> ")"}
     ]
@@ -665,16 +698,18 @@ QuiverTIdealGenerators[types_List] := Module[
   blockGenerators[_] := {"I(Unknown)"};
   combine = Fold[
     Function[{acc, block},
-      Flatten@Table[
-        StringTrim @ StringReplace[accStr <> " " <> blockStr, StartOfString ~~ " " -> ""],
-        {accStr, acc},
-        {blockStr, blockGenerators[block]}
+      Module[{gens = blockGenerators[block]},
+        Flatten@Table[
+          If[accExpr === 1, genExpr, NonCommutativeMultiply[accExpr, genExpr]],
+          {accExpr, acc},
+          {genExpr, gens}
+        ]
       ]
     ],
-    {""},
+    {1},
     types
   ];
-  DeleteCases[combine, ""]
+  DeleteCases[combine, 1]
 ];
 
 QuiverOrientedCycles[quiver_Association] := Module[
