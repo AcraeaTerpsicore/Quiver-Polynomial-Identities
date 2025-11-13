@@ -113,6 +113,14 @@ qNonPI = CreateQuiver[{1, 2}, {
    QuiverArrow["back", 2, 1]
 }];
 
+qCycle = CreateQuiver[{1, 2, 3}, {
+   QuiverArrow["c12", 1, 2],
+   QuiverArrow["c23", 2, 3],
+   QuiverArrow["c31", 3, 1]
+}];
+cycleEmbeddings = QuiverCycleEmbeddings[qCycle];
+cyclePhi = cycleEmbeddings[[1, "Phi"]];
+
 test9 = VerificationTest[
   PIQuiverQ[qNonPI],
   False,
@@ -138,22 +146,34 @@ test12 = VerificationTest[
   TestID -> "Standard polynomial S2"
 ];
 
-predA2 = QuiverPIIdealPrediction[qA2, "PathGenerators" -> piA2];
 test13 = VerificationTest[
+  Length[cycleEmbeddings] == 1 && cycleEmbeddings[[1, "Length"]] == 3,
+  True,
+  TestID -> "Cycle embedding detection"
+];
+
+test14 = VerificationTest[
+  cyclePhi[{"Arrow", "c12"}] === SparseArray[{{1, 2} -> 1}, {3, 3}],
+  True,
+  TestID -> "Cycle embedding phi"
+];
+
+predA2 = QuiverPIIdealPrediction[qA2, "PathGenerators" -> piA2];
+test15 = VerificationTest[
   predA2["TIdealStructure", "ChainLabels"] === {"T1 T0"},
   True,
   TestID -> "PI ideal prediction (A2)"
 ];
 
 predFull = QuiverPIIdealPrediction[qEx];
-test14 = VerificationTest[
+test16 = VerificationTest[
   predFull["TIdealStructure", "ChainLabels"] === {"T1 T1"},
   True,
   TestID -> "PI ideal prediction (full example)"
 ];
 
 predRestricted = QuiverPIIdealPrediction[qEx, "PathGenerators" -> piRestricted];
-test15 = VerificationTest[
+test17 = VerificationTest[
   Sort[predRestricted["TIdealStructure", "ChainLabels"]] === Sort[{"T1 T1", "T0 T1"}],
   True,
   TestID -> "PI ideal prediction (restricted example)"
@@ -161,7 +181,7 @@ test15 = VerificationTest[
 
 comm12 = NonCommutativeMultiply[x1, x2] - NonCommutativeMultiply[x2, x1];
 expectedT10 = {NonCommutativeMultiply[comm12, x3]};
-test16 = VerificationTest[
+test18 = VerificationTest[
   QuiverTIdealGenerators[{"T1", "T0"}] === expectedT10,
   True,
   TestID -> "T-ideal generators T1 T0"
@@ -174,48 +194,48 @@ chainGenAssoc = AssociationThread[
 
 expectedT0T1 = {NonCommutativeMultiply[x1, NonCommutativeMultiply[x2, x3] - NonCommutativeMultiply[x3, x2]]};
 expectedT1T1 = {NonCommutativeMultiply[comm12, NonCommutativeMultiply[x3, x4] - NonCommutativeMultiply[x4, x3]]};
-test17 = VerificationTest[
+test19 = VerificationTest[
   chainGenAssoc["T0 T1"] === expectedT0T1 && chainGenAssoc["T1 T1"] === expectedT1T1,
   True,
   TestID -> "Chain generators export"
 ];
 
 linCombo = QuiverPhiLinear[qA2, {{2, 1}, {3, "alpha"}}];
-test18 = VerificationTest[
+test20 = VerificationTest[
   linCombo === SparseArray[{{1, 1} -> 2, {1, 2} -> 3}, {2, 2}],
   True,
   TestID -> "Phi linear combination (sparse)"
 ];
 
 linDense = QuiverPhiLinear[qA2, <|1 -> 5, "alpha" -> 7|>, "Sparse" -> False];
-test19 = VerificationTest[
+test21 = VerificationTest[
   linDense === {{5, 7}, {0, 0}},
   True,
   TestID -> "Phi linear combination (dense association)"
 ];
 
 structA2 = QuiverIncidenceStructureConstants[qA2, "PathGenerators" -> piA2];
-test20 = VerificationTest[
+test22 = VerificationTest[
   structA2["Constants"][{{1, 1}, {1, 2}}] === {1, 2},
   True,
   TestID -> "Incidence structure constant"
 ];
 
 incProd = QuiverIncidenceMultiply[qA2, {{3, {1, 1}}}, {{4, {1, 2}}}];
-test21 = VerificationTest[
+test23 = VerificationTest[
   incProd === <|{1, 2} -> 12|>,
   True,
   TestID -> "Incidence multiply association"
 ];
 
 incMatrix = QuiverIncidenceMultiply[qA2, {{2, {1, 1}}}, {{5, {1, 1}}}, "Output" -> "Matrix"];
-test22 = VerificationTest[
+test24 = VerificationTest[
   incMatrix === {{10, 0}, {0, 0}},
   True,
   TestID -> "Incidence multiply matrix output"
 ];
 
-report = TestReport[{test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16, test17, test18, test19, test20, test21, test22}];
+report = TestReport[{test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16, test17, test18, test19, test20, test21, test22, test23, test24}];
 Print[report];
 If[report["TestsFailed"] > 0,
   Exit[1],

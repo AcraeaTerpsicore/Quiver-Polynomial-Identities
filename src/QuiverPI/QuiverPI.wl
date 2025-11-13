@@ -45,6 +45,11 @@ ClearAll[
   QuiverNCProduct,
   QuiverSymbolicVariables,
   QuiverCommutatorExpr,
+  QuiverCycleEmbeddings,
+  QuiverCyclePhi,
+  QuiverCyclePhiEvaluate,
+  QuiverBuildCycleEmbedding,
+  QuiverCanonicalCycle,
   QuiverPhiMatrix,
   QuiverIncidenceMask,
   QuiverIncidenceBasis,
@@ -231,6 +236,81 @@ QuiverStandardPolynomial[n_Integer?Positive, vars_: Automatic] := Module[
   ];
   Total[(Signature[#] * QuiverNCProduct[varList[[#]]]) & /@ Permutations[Range[m]]]
 ];
+
+QuiverCanonicalCycle[verts_List] := Module[
+  {rotations},
+  If[verts === {}, Return[{}]];
+  rotations = Table[RotateLeft[verts, k], {k, 0, Length[verts] - 1}];
+  First@First@SortBy[
+    Map[{#, ToString[#, InputForm]} &, rotations],
+    Last
+  ]
+];
+
+QuiverBuildCycleEmbedding[quiver_Association, cycleVerts_List] := Module[
+  {length = Length[cycleVerts], idx, successors, allowedEdges, data},
+  idx = AssociationThread[cycleVerts, Range[length]];
+  successors = Append[Rest[cycleVerts], First[cycleVerts]];
+  allowedEdges = AssociationThread[
+    DirectedEdge @@@ Transpose[{cycleVerts, successors}],
+    True
+  ];
+  data = <|
+    "Vertices" -> cycleVerts,
+    "Length" -> length,
+    "IndexMap" -> idx,
+    "AllowedEdges" -> allowedEdges
+  |>;
+  AssociateTo[data, "Phi" -> Function[spec, QuiverCyclePhiEvaluate[quiver, data, spec]]];
+  data
+];
+
+QuiverCyclePhi::vertex = "Path `1` uses vertices outside of the cycle embedding.";
+QuiverCyclePhi::edge = "Arrow `1` is not part of the oriented cycle embedding.";
+
+QuiverCyclePhiEvaluate[quiver_Association, data_Association, spec_] := Module[
+  {path = QuiverNormalizePath[quiver, spec], idx = data["IndexMap"], allowedEdges = data["AllowedEdges"],
+   n = data["Length"], arrows = quiver["Arrows"]},
+  If[FailureQ[path], Return[$Failed]];
+  If[!KeyExistsQ[idx, path["Start"]] || !KeyExistsQ[idx, path["End"]],
+    Message[QuiverCyclePhi::vertex, spec];
+    Return[$Failed];
+  ];
+  If[path["Arrows"] =!= {},
+    Do[
+      With[{arrow = Lookup[arrows, name, Missing["UnknownArrow"]]},
+        If[MissingQ[arrow] ||
+           !TrueQ[Lookup[allowedEdges, DirectedEdge[arrow["Source"], arrow["Target"]], False]],
+          Message[QuiverCyclePhi::edge, name];
+          Return[$Failed];
+        ];
+      ],
+      {name, path["Arrows"]}
+    ];
+  ];
+  SparseArray[{{idx[path["Start"]], idx[path["End"]]} -> 1}, {n, n}]
+];
+
+QuiverCycleEmbeddings[quiver_Association] := Module[
+  {graph = quiver["Graph"], edgeCycles, seen = <||>, embeddings = {}, vertexOrder, cycleVerts, canonical, key, data},
+  edgeCycles = FindCycle[graph, Infinity, All];
+  Do[
+    vertexOrder = Flatten[{First[cycleEdges][[1]], cycleEdges[[All, 2]]}];
+    cycleVerts = Most[vertexOrder];
+    If[cycleVerts === {}, Continue[]];
+    canonical = QuiverCanonicalCycle[cycleVerts];
+    key = StringRiffle[ToString /@ canonical, "->"];
+    If[TrueQ[seen[key]], Continue[]];
+    seen[key] = True;
+    data = QuiverBuildCycleEmbedding[quiver, canonical];
+    AppendTo[embeddings, data];
+    ,
+    {cycleEdges, edgeCycles}
+  ];
+  embeddings
+];
+
+QuiverCyclePhi[embedding_Association, spec_] := embedding["Phi"][spec];
 
 Options[QuiverPhiLinear] = {
   "Sparse" -> True

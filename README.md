@@ -81,6 +81,18 @@ Implementation of the constructions outlined in the paper ["Polynomial identitie
    Short[s4, 3]  (* alternates all 4! signed noncommutative products *)
    ```
 
+10. Build the explicit matrix embedding for an oriented cycle:
+
+    ```wolfram
+    qCycle = CreateQuiver[{1, 2, 3}, {
+      QuiverArrow["c12", 1, 2],
+      QuiverArrow["c23", 2, 3],
+      QuiverArrow["c31", 3, 1]
+    }];
+    emb = First[QuiverCycleEmbeddings[qCycle]];
+    QuiverCyclePhi[emb, {"Arrow", "c12"}]  (* gives E_{1,2} in M_3 *)
+    ```
+
 Key exported utilities are described inline within `src/QuiverPI/QuiverPI.wl`.
 
 ## Running Tests
@@ -101,7 +113,7 @@ See `TEST_SUMMARY.md` for a concise log of executed commands.
 
 ## Future Extensions
 
-- Explicit cycle–matrix equivalence: detect oriented cycles with $n$ vertices and build the concrete embedding $FQ \hookrightarrow M_n(F)$ highlighted in the abstract (to witness that the path algebra of the $n$-cycle is PI-equivalent to $M_n(F)$). *Status: not started — needs automated cycle classification plus canonical similarity data.*
+- Incidence-algebra isomorphism checks: implement the criterion from \cite{B} to decide whether two $A_\pi$ are isomorphic by comparing their posets and structure constants, surfacing canonical invariants for PI-equivalence classes. *Status: not started — would require canonical labeling of the transitive relation and matching of block decompositions.*
 - Standard polynomial expansion: generate the full multilinear $S_{2n}$ expressions (and related identities from \cite{B}) so T-ideal generators for $T_n$ blocks are concrete Wolfram Language polynomials, not just symbolic placeholders. *Status: not started — requires an antisymmetrization utility over noncommuting variables.*
 
 ## References
