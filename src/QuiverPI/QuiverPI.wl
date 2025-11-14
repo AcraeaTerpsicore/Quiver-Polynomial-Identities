@@ -19,6 +19,8 @@ QuiverIncidencePoset::usage = "QuiverIncidencePoset[quiver, opts] returns the tr
 QuiverPosetDecomposition::usage = "QuiverPosetDecomposition[quiver, opts] decomposes the incidence poset into strongly connected component blocks of type T_n or T_0.";
 QuiverPIIdealPrediction::usage = "QuiverPIIdealPrediction[quiver, opts] predicts \\!\\(\\*SubscriptBox[\\(\\text{id}\\), \\(T\\)]\\)(FQ_\\!\\(\\*SubscriptBox[\\(\\pi\\), \\(\\)]\\)) using the T-ideal decomposition described in the reference paper.";
 QuiverTIdealGenerators::usage = "QuiverTIdealGenerators[blockTypes] returns symbolic generator expressions for the T-ideal associated with the sequence of block types (e.g., {\"T1\",\"T0\"}).";
+QuiverIncidenceCanonicalForm::usage = "QuiverIncidenceCanonicalForm[quiver, opts] builds a canonical invariant for the incidence algebra (poset, structure constants).";
+QuiverIncidenceIsomorphicQ::usage = "QuiverIncidenceIsomorphicQ[quiverA, quiverB, opts] decides whether two incidence algebras are isomorphic by comparing canonical invariants.";
 QuiverStandardPolynomial::usage = "QuiverStandardPolynomial[n, vars] produces the multilinear standard polynomial $S_{2n}$ in the provided noncommuting variables.";
 QuiverEnumeratePaths::usage = "QuiverEnumeratePaths[quiver, maxLength] lists all paths of length up to the specified bound.";
 QuiverRandomIncidenceElement::usage = "QuiverRandomIncidenceElement[quiver, opts] samples a random linear combination of basis matrices.";
@@ -59,6 +61,8 @@ ClearAll[
   QuiverPosetDecomposition,
   QuiverPIIdealPrediction,
   QuiverTIdealGenerators,
+  QuiverIncidenceCanonicalForm,
+  QuiverIncidenceIsomorphicQ,
   QuiverIncidenceBasisPairs,
   QuiverNormalizeIncidenceElement,
   QuiverIncidenceAssociationToMatrix,
@@ -311,6 +315,40 @@ QuiverCycleEmbeddings[quiver_Association] := Module[
 ];
 
 QuiverCyclePhi[embedding_Association, spec_] := embedding["Phi"][spec];
+
+Options[QuiverIncidenceCanonicalForm] = {
+  "PathGenerators" -> Automatic
+};
+QuiverIncidenceCanonicalForm[quiver_Association, OptionsPattern[]] := Module[
+  {generators = QuiverResolveGenerators[quiver, OptionValue["PathGenerators"]],
+   poset, chains, structure, pairs, pairIndex, constants},
+  poset = QuiverIncidencePoset[quiver, "PathGenerators" -> generators];
+  chains = Sort[QuiverPosetDecomposition[quiver, "PathGenerators" -> generators]["Chains"]];
+  structure = QuiverIncidenceStructureConstants[quiver, "PathGenerators" -> generators];
+  pairs = Sort[structure["Pairs"]];
+  pairIndex = AssociationThread[structure["Pairs"], Range[Length[structure["Pairs"]]]];
+  constants = Table[
+     Lookup[structure["Constants"], {pairs[[i]], pairs[[j]]}, None],
+     {i, Length[pairs]}, {j, Length[pairs]}
+   ];
+  <|
+    "Mask" -> poset["Mask"],
+    "Chains" -> chains,
+    "Pairs" -> pairs,
+    "Constants" -> constants
+  |>
+];
+
+Options[QuiverIncidenceIsomorphicQ] = {
+  "PathGeneratorsA" -> Automatic,
+  "PathGeneratorsB" -> Automatic
+};
+QuiverIncidenceIsomorphicQ[quiverA_Association, quiverB_Association, OptionsPattern[]] := Module[
+  {canonA, canonB},
+  canonA = QuiverIncidenceCanonicalForm[quiverA, "PathGenerators" -> OptionValue["PathGeneratorsA"]];
+  canonB = QuiverIncidenceCanonicalForm[quiverB, "PathGenerators" -> OptionValue["PathGeneratorsB"]];
+  canonA === canonB
+];
 
 Options[QuiverPhiLinear] = {
   "Sparse" -> True

@@ -48,6 +48,19 @@ All formulas reference the notation from `reference_paper/BCDP_3.tex`. They capt
 - Any oriented cycle $(v_1 \to v_2 \to \cdots \to v_n \to v_1)$ yields a canonical embedding $\Phi_{\text{cycle}}: FQ_{\text{cycle}} \to M_n(F)$ defined by $\Phi(p) = e_{s(p), t(p)}$ after relabeling vertices so that $v_i$ corresponds to row/column $i$. 
 - `QuiverCycleEmbeddings` detects such cycles and provides the matrix units together with a `Phi` evaluator that rejects paths leaving the cycle.
 
+## Incidence-Isomorphism Invariant
+
+- Following \cite{B}, incidence algebras $A_\pi$ and $A_{\pi'}$ are isomorphic iff their posets (and structure constants with respect to a compatible basis) coincide.
+- The canonical form stored by `QuiverIncidenceCanonicalForm` includes the path generators chosen, the mask $M$ (reachable pairs), sorted chain decomposition, and the structure tensor 
+  \[
+    c_{(i,j),(k,\ell)} =
+    \begin{cases}
+        (i,\ell), & j = k \text{ and } (i,\ell) \in M, \\
+        \text{None}, & \text{otherwise.}
+    \end{cases}
+  \]
+- `QuiverIncidenceIsomorphicQ` compares these canonical forms to decide isomorphism.
+
 ## Polynomial Identities
 
 - The commutator used throughout the code is

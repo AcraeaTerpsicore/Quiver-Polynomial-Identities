@@ -93,6 +93,13 @@ Implementation of the constructions outlined in the paper ["Polynomial identitie
     QuiverCyclePhi[emb, {"Arrow", "c12"}]  (* gives E_{1,2} in M_3 *)
     ```
 
+11. Compare incidence algebras across quivers:
+
+    ```wolfram
+    canonQ = QuiverIncidenceCanonicalForm[qCycle];
+    QuiverIncidenceIsomorphicQ[qCycle, q, "PathGeneratorsB" -> pi]
+    ```
+
 Key exported utilities are described inline within `src/QuiverPI/QuiverPI.wl`.
 
 ## Running Tests
@@ -113,8 +120,7 @@ See `TEST_SUMMARY.md` for a concise log of executed commands.
 
 ## Future Extensions
 
-- Incidence-algebra isomorphism checks: implement the criterion from \cite{B} to decide whether two $A_\pi$ are isomorphic by comparing their posets and structure constants, surfacing canonical invariants for PI-equivalence classes. *Status: not started — would require canonical labeling of the transitive relation and matching of block decompositions.*
-- Standard polynomial expansion: generate the full multilinear $S_{2n}$ expressions (and related identities from \cite{B}) so T-ideal generators for $T_n$ blocks are concrete Wolfram Language polynomials, not just symbolic placeholders. *Status: not started — requires an antisymmetrization utility over noncommuting variables.*
+- Incidence-algebra isomorphism checks: implement the criterion from \cite{B} to decide whether two $A_\pi$ are isomorphic by comparing their posets and structure constants, surfacing canonical invariants for PI-equivalence classes. *Status: in progress — current implementation compares canonical forms but may be extended to offer counterexample witnesses or automorphism enumeration.*
 
 ## References
 

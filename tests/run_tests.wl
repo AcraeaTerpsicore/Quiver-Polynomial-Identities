@@ -113,13 +113,23 @@ qNonPI = CreateQuiver[{1, 2}, {
    QuiverArrow["back", 2, 1]
 }];
 
+test14 = VerificationTest[
+  Length[cycleEmbeddings] == 1 && cycleEmbeddings[[1, "Length"]] == 3,
+  True,
+  TestID -> "Cycle embedding detection"
+];
+
+test15 = VerificationTest[
+  cyclePhi[{"Arrow", "c12"}] === SparseArray[{{1, 2} -> 1}, {3, 3}],
+  True,
+  TestID -> "Cycle embedding phi"
+];
+
 qCycle = CreateQuiver[{1, 2, 3}, {
    QuiverArrow["c12", 1, 2],
    QuiverArrow["c23", 2, 3],
    QuiverArrow["c31", 3, 1]
 }];
-cycleEmbeddings = QuiverCycleEmbeddings[qCycle];
-cyclePhi = cycleEmbeddings[[1, "Phi"]];
 
 test9 = VerificationTest[
   PIQuiverQ[qNonPI],
@@ -159,7 +169,7 @@ test14 = VerificationTest[
 ];
 
 predA2 = QuiverPIIdealPrediction[qA2, "PathGenerators" -> piA2];
-test15 = VerificationTest[
+test16 = VerificationTest[
   predA2["TIdealStructure", "ChainLabels"] === {"T1 T0"},
   True,
   TestID -> "PI ideal prediction (A2)"
@@ -181,7 +191,7 @@ test17 = VerificationTest[
 
 comm12 = NonCommutativeMultiply[x1, x2] - NonCommutativeMultiply[x2, x1];
 expectedT10 = {NonCommutativeMultiply[comm12, x3]};
-test18 = VerificationTest[
+test19 = VerificationTest[
   QuiverTIdealGenerators[{"T1", "T0"}] === expectedT10,
   True,
   TestID -> "T-ideal generators T1 T0"
@@ -240,4 +250,11 @@ Print[report];
 If[report["TestsFailed"] > 0,
   Exit[1],
   Exit[0]
+];
+canonA = QuiverIncidenceCanonicalForm[qA2, "PathGenerators" -> piA2];
+canonCycle = QuiverIncidenceCanonicalForm[qCycle];
+test22 = VerificationTest[
+  !QuiverIncidenceIsomorphicQ[qA2, qCycle, "PathGeneratorsA" -> piA2],
+  True,
+  TestID -> "Incidence isomorphism negative"
 ];
