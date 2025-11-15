@@ -60,6 +60,7 @@ All formulas reference the notation from `reference_paper/BCDP_3.tex`. They capt
     \end{cases}
   \]
 - `QuiverIncidenceIsomorphicQ` compares these canonical forms to decide isomorphism.
+- Automorphisms of $A_\pi$ are exactly automorphisms of the incidence poset \cite{B}. The function `QuiverIncidenceAutomorphisms` computes the automorphism group of the Hasse diagram and exposes its order and generators.
 
 ## Polynomial Identities
 

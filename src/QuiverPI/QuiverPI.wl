@@ -21,6 +21,7 @@ QuiverPIIdealPrediction::usage = "QuiverPIIdealPrediction[quiver, opts] predicts
 QuiverTIdealGenerators::usage = "QuiverTIdealGenerators[blockTypes] returns symbolic generator expressions for the T-ideal associated with the sequence of block types (e.g., {\"T1\",\"T0\"}).";
 QuiverIncidenceCanonicalForm::usage = "QuiverIncidenceCanonicalForm[quiver, opts] builds a canonical invariant for the incidence algebra (poset, structure constants).";
 QuiverIncidenceIsomorphicQ::usage = "QuiverIncidenceIsomorphicQ[quiverA, quiverB, opts] decides whether two incidence algebras are isomorphic by comparing canonical invariants.";
+QuiverIncidenceAutomorphisms::usage = "QuiverIncidenceAutomorphisms[quiver, opts] returns automorphism group data for the incidence poset.";
 QuiverStandardPolynomial::usage = "QuiverStandardPolynomial[n, vars] produces the multilinear standard polynomial $S_{2n}$ in the provided noncommuting variables.";
 QuiverEnumeratePaths::usage = "QuiverEnumeratePaths[quiver, maxLength] lists all paths of length up to the specified bound.";
 QuiverRandomIncidenceElement::usage = "QuiverRandomIncidenceElement[quiver, opts] samples a random linear combination of basis matrices.";
@@ -63,6 +64,7 @@ ClearAll[
   QuiverTIdealGenerators,
   QuiverIncidenceCanonicalForm,
   QuiverIncidenceIsomorphicQ,
+  QuiverIncidenceAutomorphisms,
   QuiverIncidenceBasisPairs,
   QuiverNormalizeIncidenceElement,
   QuiverIncidenceAssociationToMatrix,
@@ -348,6 +350,28 @@ QuiverIncidenceIsomorphicQ[quiverA_Association, quiverB_Association, OptionsPatt
   canonA = QuiverIncidenceCanonicalForm[quiverA, "PathGenerators" -> OptionValue["PathGeneratorsA"]];
   canonB = QuiverIncidenceCanonicalForm[quiverB, "PathGenerators" -> OptionValue["PathGeneratorsB"]];
   canonA === canonB
+];
+
+Options[QuiverIncidenceAutomorphisms] = {
+  "PathGenerators" -> Automatic,
+  "Graph" -> "Hasse"
+};
+QuiverIncidenceAutomorphisms[quiver_Association, OptionsPattern[]] := Module[
+  {generators = QuiverResolveGenerators[quiver, OptionValue["PathGenerators"]],
+   poset, graph, group},
+  poset = QuiverIncidencePoset[quiver, "PathGenerators" -> generators];
+  graph = Switch[OptionValue["Graph"],
+    "Relation", poset["RelationGraph"],
+    _, poset["HasseDiagram"]
+  ];
+  Needs["GraphUtilities`"];
+  group = GraphAutomorphismGroup[graph];
+  <|
+    "Group" -> group,
+    "Order" -> GroupOrder[group],
+    "Generators" -> GroupGenerators[group],
+    "Graph" -> graph
+  |>
 ];
 
 Options[QuiverPhiLinear] = {

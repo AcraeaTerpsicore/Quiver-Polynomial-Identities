@@ -100,6 +100,13 @@ Implementation of the constructions outlined in the paper ["Polynomial identitie
     QuiverIncidenceIsomorphicQ[qCycle, q, "PathGeneratorsB" -> pi]
     ```
 
+12. Inspect incidence automorphisms:
+
+    ```wolfram
+    auto = QuiverIncidenceAutomorphisms[qCycle];
+    auto["Order"]  (* rotation symmetries of the cycle *)
+    ```
+
 Key exported utilities are described inline within `src/QuiverPI/QuiverPI.wl`.
 
 ## Running Tests
@@ -118,11 +125,11 @@ The suite covers:
 
 See `TEST_SUMMARY.md` for a concise log of executed commands.
 
-## Future Extensions
-
-- Incidence-algebra isomorphism checks: implement the criterion from \cite{B} to decide whether two $A_\pi$ are isomorphic by comparing their posets and structure constants, surfacing canonical invariants for PI-equivalence classes. *Status: in progress — current implementation compares canonical forms but may be extended to offer counterexample witnesses or automorphism enumeration.*
 
 ## References
 
 - Berele, Cerulli Irelli, De Loera Chávez, Pascucci. *Polynomial identities for quivers via incidence algebras*, arXiv:2511.03536.
 - Berele. *Incidence algebras, polynomial identities, and an $A \otimes B$ counterexample*, Comm. Algebra (1984).
+## Future Extensions
+
+- Tensor-product counterexamples: reproduce Berele’s $A \otimes B$ counterexample construction inside the toolkit so incidence algebras can certify new PI phenomena directly from path data. *Status: not started — requires modeling the tensor product of two incidence algebras and tracking their PI ideals.*
